@@ -3,7 +3,7 @@
 # ✅ To-Do mínimo (Python + PySide6)
 
 ## Must-have (entrega)
-- [ ] **App base**: janela + `Canvas` (QWidget) e `QPainter` no `paintEvent`.
+- [x] **App base**: janela + `Canvas` (QWidget) e `QPainter` no `paintEvent`.
 - [ ] **Clique → vértice**: adicionar ponto e desenhar aresta em tempo real (linha fantasma).
 - [ ] **Fechar polígono** (botão/Enter) com validação (≥3 vértices, não degenerado).
 - [ ] **ET (Edge Table)**: construir a partir dos vértices (ignorar horizontais, tratar topo/fundo).
