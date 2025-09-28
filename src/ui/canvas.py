@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QWidget, QMessageBox
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 from src.core.polygon import Styles
-# no futuro: from src.core.scanline import scanline_fill_even_odd
+from src.core.scanline import scanline_fill_even_odd
 
 
 class GLCanvas(QOpenGLWidget):
@@ -21,8 +21,11 @@ class GLCanvas(QOpenGLWidget):
         self.vertices: List[QPointF] = []
         self.hover: Optional[QPointF] = None
         self.closed: bool = False
+        self.filled: bool = False
         self.styles = Styles()
-        self._bg = QColor(255, 255, 255)
+        self._bg = QColor("#03061F")
+        self.cor_atual = QColor("#0095FF") 
+        self.cor_atual_index = 0
 
     # ---- OpenGL lifecycle ----
     def initializeGL(self) -> None:
@@ -37,38 +40,38 @@ class GLCanvas(QOpenGLWidget):
         painter.setRenderHint(QPainter.Antialiasing, True)
         painter.fillRect(self.rect(), self._bg)
 
-        # contorno
-        pen = QPen(QColor(self.styles.stroke_r, self.styles.stroke_g, self.styles.stroke_b, self.styles.stroke_a),
-                   self.styles.stroke_width)
+        pen = QPen(QColor("#FF0101"), self.styles.stroke_width)
         painter.setPen(pen)
 
         n = len(self.vertices)
-        for i in range(1, n):
-            painter.drawLine(self.vertices[i - 1], self.vertices[i])
+        for i in range(n):
+            self.set_stroke_width(6)
+            painter.drawPoint(self.vertices[i])
 
         if self.closed and n >= 2:
+            self.set_stroke_color(QColor("#FF0101"))
+            self.set_stroke_width(2)
+            for i in range(1, n):
+                painter.drawLine(self.vertices[i - 1], self.vertices[i])
             painter.drawLine(self.vertices[-1], self.vertices[0])
 
-        # (placeholder) quando o ET/AET estiver pronto, preencher aqui.
-        # Example:
-        # if self.closed and n >= 3:
-        #     spans_by_y = scanline_fill_even_odd(self.vertices)
-        #     fill_color = QColor(self.styles.fill_r, self.styles.fill_g, self.styles.fill_b, self.styles.fill_a)
-        #     painter.setPen(fill_color)
-        #     for y, spans in spans_by_y.items():
-        #         for x1, x2 in spans:
-        #             painter.drawLine(x1, y, x2, y)
+        if self.closed and n >= 3 and self.styles.fill_a > 0 and self.filled:
+            fill_color = QColor(self.cor_atual)
+            spans_by_y = scanline_fill_even_odd(self.vertices)
+            painter.setPen(fill_color)
+            for y, spans in spans_by_y.items():
+                for x1, x2 in spans:
+                    painter.drawLine(x1, y, x2, y)
 
-        if not self.closed and self.hover is not None and n >= 1:
-            ghost_pen = QPen(QColor(120, 120, 120, 160),
-                             max(1, self.styles.stroke_width - 1),
-                             Qt.DashLine)
-            painter.setPen(ghost_pen)
-            painter.drawLine(self.vertices[-1], self.hover)
+        # if not self.closed and self.hover is not None and n >= 1:
+        #     ghost_pen = QPen(QColor(120, 120, 120, 160),
+        #                      max(1, self.styles.stroke_width - 1),
+        #                      Qt.DashLine)
+        #     painter.setPen(ghost_pen)
+        #     painter.drawLine(self.vertices[-1], self.hover)
 
         painter.end()
 
-    # ---- Interação ----
     def mousePressEvent(self, e: QMouseEvent) -> None:
         if e.button() == Qt.LeftButton and not self.closed:
             self.vertices.append(QPointF(e.position()))
@@ -91,6 +94,7 @@ class GLCanvas(QOpenGLWidget):
         self.vertices.clear()
         self.hover = None
         self.closed = False
+        self.filled = False
         self.update()
 
     def undo(self) -> None:
@@ -113,7 +117,38 @@ class GLCanvas(QOpenGLWidget):
         self.closed = True
         self.update()
 
-    # ---- Estilo ----
+    def fill_polygon(self) -> None:
+        if self.filled:
+            self.filled = False
+            self.update()
+            return
+        if not self.closed:
+            QMessageBox.information(self, "Aviso", "Precisa de pelo menos 3 vértices para fechar o polígono.")
+            return
+        self.filled = True
+        self.update()
+
+    def change_color(self) -> None:
+        cores_hex = [
+            "#DB5353",  
+            "#4DD24D", 
+            "#6969DA",  
+            "#FAF734",  
+            "#F071F0",  
+            "#5BD9D9",  
+            "#FFFFFF",  
+            "#E39D3C",  
+            "#FD4AFD"   
+        ]
+        
+        if not self.filled:
+            return
+        self.cor_atual_index += 1
+        self.cor_atual = QColor(cores_hex[self.cor_atual_index % len(cores_hex)])
+        
+        self.update()
+
+    # Funções Auxiliares do Desenho
     def set_stroke_color(self, color: QColor) -> None:
         self.styles.stroke_r = color.red()
         self.styles.stroke_g = color.green()
@@ -125,7 +160,7 @@ class GLCanvas(QOpenGLWidget):
         self.styles.stroke_width = max(1, int(w))
         self.update()
 
-    # ---- Util ----
+    # Utilidade 
     def sizeHint(self) -> QSize:
         return QSize(900, 600)
 
