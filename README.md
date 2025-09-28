@@ -28,3 +28,21 @@
 - `src/core/scanline.py` — ET/AET + preenchimento.
 - `src/core/polygon.py` — estrutura dos vértices e utilidades.
 - `src/io/serde.py` — salvar/abrir JSON.
+
+## Como Executar
+
+1.  **Abra um terminal** (CMD, PowerShell ou outro de sua preferência).
+
+2.  **Navegue até a pasta do seu projeto**, onde o arquivo `setup.py` está localizado.
+    ```bash
+    cd caminho\para\seu\projeto
+    ```
+
+3.  **Execute o comando** para iniciar o processo de compilação:
+    ```bash
+    python setup.py py2exe
+    ```
+
+Ao final do processo, uma nova pasta chamada **`dist`** será criada no seu diretório. Dentro dela, você encontrará o arquivo **`app.exe`** junto com todos os outros arquivos e DLLs necessários.
+
+> **Importante**: Para que o programa funcione em outro computador, você precisa copiar e distribuir a pasta **`dist`** inteira.

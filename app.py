@@ -2,7 +2,7 @@ from __future__ import annotations
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QToolBar, QColorDialog, QSpinBox
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
-from PySide6.QtGui import QSurfaceFormat, QColor, QAction  # <- QAction vem de QtGui
+from PySide6.QtGui import QSurfaceFormat, QColor, QAction  
 from src.ui.canvas import GLCanvas
 
 
@@ -25,9 +25,7 @@ class MainWindow(QMainWindow):
         act_undo = QAction("Desfazer", self, shortcut="Ctrl+Z", triggered=self.canvas.undo)
         act_clear = QAction("Limpar", self, shortcut="Ctrl+L", triggered=self.canvas.clear)
         act_close = QAction("Fechar polígono", self, shortcut="Enter", triggered=self.canvas.close_polygon)
-
-        act_color = QAction("Cor do traço", self)
-        act_color.triggered.connect(self._pick_color)
+        act_color = QAction("Cor do traço", self, triggered=self.canvas.change_color)
 
         width_spin = QSpinBox(self)
         width_spin.setRange(1, 12)
@@ -43,15 +41,8 @@ class MainWindow(QMainWindow):
         tb.addWidget(width_spin)
 
         tb.addSeparator()
-        act_fill = QAction("Preencher (ET/AET)", self)
-        act_fill.setEnabled(False)  # habilite quando implementar o algoritmo
+        act_fill = QAction("Preencher (ET/AET)", self, triggered=self.canvas.fill_polygon)
         tb.addAction(act_fill)
-
-    def _pick_color(self) -> None:
-        color = QColorDialog.getColor(self.canvas.styles.stroke_color, self, "Escolher cor do traço")
-        if color.isValid():
-            self.canvas.set_stroke_color(color)
-
 
 def configure_default_surface_format(samples: int = 4) -> None:
     fmt = QSurfaceFormat()
@@ -68,6 +59,7 @@ def main():
     win = MainWindow()
     win.resize(1000, 700)
     win.show()
+    win.setStyleSheet("background-color: " + "#000000" + ";")  
     sys.exit(app.exec())
 
 
