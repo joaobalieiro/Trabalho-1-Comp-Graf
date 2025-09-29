@@ -1,8 +1,7 @@
 from __future__ import annotations
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QToolBar, QColorDialog, QSpinBox
-from PySide6.QtOpenGLWidgets import QOpenGLWidget
-from PySide6.QtGui import QSurfaceFormat, QColor, QAction  
+from PySide6.QtWidgets import QApplication, QMainWindow, QToolBar, QSpinBox
+from PySide6.QtGui import QSurfaceFormat, QAction
 from src.ui.canvas import GLCanvas
 
 
@@ -22,10 +21,13 @@ class MainWindow(QMainWindow):
         tb.setMovable(False)
         self.addToolBar(tb)
 
+        # dentro de _build_toolbar(self)
         act_undo = QAction("Desfazer", self, shortcut="Ctrl+Z", triggered=self.canvas.undo)
         act_clear = QAction("Limpar", self, shortcut="Ctrl+L", triggered=self.canvas.clear)
         act_close = QAction("Fechar polígono", self, shortcut="Enter", triggered=self.canvas.close_polygon)
+
         act_color = QAction("Cor do traço", self, triggered=self.canvas.change_color)
+        act_fill_color = QAction("Cor de preenchimento", self, triggered=self.canvas.change_fill_color)  # NOVO
 
         width_spin = QSpinBox(self)
         width_spin.setRange(1, 12)
@@ -38,6 +40,7 @@ class MainWindow(QMainWindow):
         tb.addAction(act_close)
         tb.addSeparator()
         tb.addAction(act_color)
+        tb.addAction(act_fill_color)
         tb.addWidget(width_spin)
 
         tb.addSeparator()
@@ -59,7 +62,6 @@ def main():
     win = MainWindow()
     win.resize(1000, 700)
     win.show()
-    win.setStyleSheet("background-color: " + "#000000" + ";")  
     sys.exit(app.exec())
 
 
