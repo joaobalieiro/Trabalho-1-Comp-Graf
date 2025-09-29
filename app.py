@@ -6,6 +6,7 @@ from src.ui.canvas import GLCanvas
 
 
 class MainWindow(QMainWindow):
+    # inicializa a janela principal com titulo, canvas opengl, barra de ferramentas e mensagens de status
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Preenchimento de Polígonos — Base (PySide6 + OpenGL)")
@@ -16,6 +17,7 @@ class MainWindow(QMainWindow):
             "Clique esq.: add vértice • Direito/Enter: fechar • Ctrl+Z: desfazer • Ctrl+L: limpar"
         )
 
+    # constroi a barra de ferramentas com botoes de edicao cor espessura e preenchimento do poligono
     def _build_toolbar(self) -> None:
         tb = QToolBar("Ferramentas", self)
         tb.setMovable(False)
@@ -47,6 +49,7 @@ class MainWindow(QMainWindow):
         act_fill = QAction("Preencher (ET/AET)", self, triggered=self.canvas.fill_polygon)
         tb.addAction(act_fill)
 
+# configura o formato padrao da superficie opengl definindo multisample buffer profundidade estencil e double buffer
 def configure_default_surface_format(samples: int = 4) -> None:
     fmt = QSurfaceFormat()
     fmt.setSamples(samples)

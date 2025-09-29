@@ -9,21 +9,18 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from src.core.polygon import Styles
 from src.core.scanline import scanline_fill_even_odd
 
-
+# classe que implementa um canvas 2d baseado em qopenglwidget onde o usuario pode adicionar vertices,
+# fechar poligonos, alterar cor e espessura do traço e aplicar preenchimento via algoritmo scanline
 class GLCanvas(QOpenGLWidget):
-    """
-    Canvas 2D (QOpenGLWidget) com desenho via QPainter.
-    - Fundo branco
-    - Traço com espessura ajustável (QSpinBox)
-    - Preenchimento por scanline (Even-Odd)
-    - Mudança de cor do traço e do preenchimento por diálogo
-    """
+
+    # inicializa o canvas guardando vertices estado de fechamento e preenchimento
+    # e configurando estilos e cores iniciais do traço e do preenchimento
     def __init__(self, parent=None):
         super().__init__(parent)
         self.vertices: List[QPointF] = []
         self.closed: bool = False
         self.filled: bool = False
-        self.styles = Styles()  # usa defaults (traço escuro fino, fill azul translúcido)
+        self.styles = Styles()
 
         # cor atual de traço/preenchimento espelhando Styles
         self._stroke_qcolor = QColor(self.styles.stroke_r, self.styles.stroke_g,
@@ -34,22 +31,21 @@ class GLCanvas(QOpenGLWidget):
         # melhora nitidez de pontos/linhas
         self.setMouseTracking(True)
 
-    # ----------------------------
-    # Ciclo do QOpenGLWidget
-    # ----------------------------
+    # ciclo do QOpenGLWidget
     def initializeGL(self) -> None:
-        # nada específico: usamos QPainter
+        # nada especifico: usamos QPainter
         pass
 
     def resizeGL(self, w: int, h: int) -> None:
-        # nada específico: QPainter já usa o rect do widget
+        # nada especifico: QPainter ja usa o rect do widget
         pass
 
+    # metodo responsavel por desenhar o canvas: fundo branco, vertices, arestas e preenchimento por scanline
     def paintGL(self) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing, True)
 
-        # 1) FUNDO BRANCO
+        # 1) fundo branco
         p.fillRect(self.rect(), Qt.white)
 
         n = len(self.vertices)
@@ -66,14 +62,14 @@ class GLCanvas(QOpenGLWidget):
         for v in self.vertices:
             p.drawPoint(v)
 
-        # 2b) desenha arestas (polilinha aberta ou polígono)
+        # 2b) desenha arestas (linha aberta ou poligono)
         if n >= 2:
             for i in range(1, n):
                 p.drawLine(self.vertices[i - 1], self.vertices[i])
             if self.closed:
                 p.drawLine(self.vertices[-1], self.vertices[0])
 
-        # 3) Preenchimento (se fechado e marcado para preencher)
+        # 3) preenchimento (se fechado e marcado para preencher)
         if self.closed and self.filled and n >= 3 and self._fill_qcolor.alpha() > 0:
             p.setPen(self._fill_qcolor)
             spans_by_y = scanline_fill_even_odd(self.vertices)
@@ -84,9 +80,7 @@ class GLCanvas(QOpenGLWidget):
 
         p.end()
 
-    # ----------------------------
-    # Interação
-    # ----------------------------
+    # interacao do mouse
     def mousePressEvent(self, e: QMouseEvent) -> None:
         if e.button() == Qt.LeftButton and not self.closed:
             self.vertices.append(QPointF(e.position()))
@@ -94,30 +88,30 @@ class GLCanvas(QOpenGLWidget):
         elif e.button() == Qt.RightButton:
             self.close_polygon()
 
+    # trata eventos de teclado: enter fecha o poligono e esc limpa o canvas
     def keyPressEvent(self, e):
         if e.key() in (Qt.Key_Return, Qt.Key_Enter):
             self.close_polygon()
         elif e.key() == Qt.Key_Escape:
             self.clear()
 
-    # ----------------------------
-    # Comandos acionados pela toolbar
-    # ----------------------------
+    # desfaz a ultima acao removendo o ultimo vertice ou reabrindo o poligono fechado
     def undo(self) -> None:
         if self.closed:
-            # “desfecha” primeiro
             self.closed = False
             self.filled = False
         elif self.vertices:
             self.vertices.pop()
         self.update()
 
+    # limpa o canvas removendo todos os vertices e resetando estado de fechamento e preenchimento
     def clear(self) -> None:
         self.vertices.clear()
         self.closed = False
         self.filled = False
         self.update()
 
+    # fecha o poligono se houver pelo menos tres vertices caso contrario mostra aviso
     def close_polygon(self) -> None:
         if len(self.vertices) < 3:
             QMessageBox.information(self, "Polígono inválido",
@@ -126,6 +120,7 @@ class GLCanvas(QOpenGLWidget):
         self.closed = True
         self.update()
 
+    # preenche o poligono fechado caso contrario exibe aviso para fechar antes
     def fill_polygon(self) -> None:
         if not self.closed:
             QMessageBox.information(self, "Feche o polígono",
@@ -134,9 +129,8 @@ class GLCanvas(QOpenGLWidget):
         self.filled = True
         self.update()
 
-    # ---------- cores ----------
+    # abre dialogo para escolher nova cor do traco e atualiza o estilo e a tela
     def change_color(self) -> None:
-        """Muda a cor do traço."""
         c = QColorDialog.getColor(self._stroke_qcolor, self, "Cor do traço")
         if c.isValid():
             self._stroke_qcolor = c
@@ -146,8 +140,8 @@ class GLCanvas(QOpenGLWidget):
             self.styles.stroke_a = c.alpha()
             self.update()
 
+    # abre dialogo para escolher nova cor de preenchimento e atualiza o estilo e a tela
     def change_fill_color(self) -> None:
-        """Muda a cor do preenchimento."""
         c = QColorDialog.getColor(self._fill_qcolor, self, "Cor de preenchimento")
         if c.isValid():
             self._fill_qcolor = c
@@ -157,11 +151,11 @@ class GLCanvas(QOpenGLWidget):
             self.styles.fill_a = c.alpha()
             self.update()
 
-    # ---------- espessura ----------
+    # ajusta a espessura do traco garantindo valor minimo 1 e atualiza a tela
     def set_stroke_width(self, w: int) -> None:
         self.styles.stroke_width = max(1, int(w))
         self.update()
 
-    # ---------- util ----------
+    # sugere o tamanho padrao da janela do canvas
     def sizeHint(self) -> QSize:
         return QSize(900, 600)

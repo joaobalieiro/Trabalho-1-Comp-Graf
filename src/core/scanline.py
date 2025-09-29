@@ -3,33 +3,28 @@ from typing import Dict, List, Tuple
 from PySide6.QtCore import QPointF
 import math
 
+# tipos auxiliares para representar intervalos horizontais (spans) por linha y no preenchimento scanline
 Span = Tuple[int, int]
 SpansByY = Dict[int, List[Span]]
 
+# preenche poligono por scanline (et/aet) e retorna spans horizontais por y usando a regra even-odd
 def scanline_fill_even_odd(vertices: List[QPointF]) -> SpansByY:
-    """
-    Preenchimento por scanline usando ET / AET.
-    Retorna dicionário { y_int : [(x1,x2), (x3,x4), ...] } com spans por linha (intervalos inteiros inclusivos).
-    Observações:
-      - Usa scanline "center" em y + 0.5 para evitar duplicidade em vértices.
-      - Remove arestas horizontais.
-      - vertices podem estar em qualquer ordem (fecha o polígono implicitamente).
-    """
+
     if len(vertices) < 3:
         return {}
 
-    # Helper para acessar float das QPointF
+    # helper para acessar float das QPointF
     def xf(p: QPointF) -> float:
         return float(p.x())
     def yf(p: QPointF) -> float:
         return float(p.y())
 
-    # Fecha polígono se necessário
+    # fecha poligono se necessario
     verts = vertices[:] if vertices[0] != vertices[-1] else vertices[:]
     if verts[0] != verts[-1]:
         verts.append(verts[0])
 
-    # Construir Edge Table (ET): dict[y_start] -> list de edges
+    # construir Edge Table (ET): dict[y_start] -> list de edges
     # cada edge será um dict: { 'y_end': int, 'x': float, 'inv_slope': float }
     ET: Dict[int, List[dict]] = {}
 
@@ -43,7 +38,7 @@ def scanline_fill_even_odd(vertices: List[QPointF]) -> SpansByY:
         x0, y0 = xf(p0), yf(p0)
         x1, y1 = xf(p1), yf(p1)
 
-        # Ignorar arestas horizontais
+        # ignorar arestas horizontais
         if abs(y1 - y0) < 1e-12:
             continue
 
@@ -55,10 +50,10 @@ def scanline_fill_even_odd(vertices: List[QPointF]) -> SpansByY:
         # usando a convenção de testar a posição y_scan = y + 0.5:
         # queremos y tais que y + 0.5 >= y_min  e  y + 0.5 < y_max
         y_start = math.ceil(y_min - 0.5)
-        y_end = math.floor(y_max - 0.5)  # inclusive
+        y_end = math.floor(y_max - 0.5)
 
         if y_start > y_end:
-            # aresta muito pequena para afetar qualquer scanline com essa convenção
+            # aresta muito pequena para afetar qualquer scanline com essa convencao
             continue
 
         # inv_slope = dx/dy (incremento de x por incremento de y=1 scanline)
@@ -75,30 +70,31 @@ def scanline_fill_even_odd(vertices: List[QPointF]) -> SpansByY:
         max_y = max(max_y, y_end)
 
     if min_y is math.inf:
-        return {}  # sem arestas válidas
+        # sem arestas validas
+        return {}
 
-    # Varredura: de min_y até max_y inclusive
+    # varredura: de min_y ate max_y inclusive
     AET: List[dict] = []
     spans_by_y: SpansByY = {}
 
     for y in range(int(min_y), int(max_y) + 1):
-        # 1) Inserir arestas da ET para esta scanline
+        # 1) inserir arestas da ET para esta scanline
         edges_to_add = ET.get(y, [])
         if edges_to_add:
             AET.extend(edges_to_add)
 
-        # 2) Remover arestas cuja y_end < y (já não estão ativas nesta scanline)
+        # 2) remover arestas cuja y_end < y (ja nao estao ativas nesta scanline)
         AET = [e for e in AET if e['y_end'] >= y]
 
-        # 3) Ordenar AET por x atual
+        # 3) ordenar AET por x atual
         AET.sort(key=lambda e: e['x'])
 
-        # 4) Formar pares (even-odd) e gerar spans
+        # 4) formar pares (even-odd) e gerar spans
         xs = [e['x'] for e in AET]
         spans: List[Span] = []
         for i in range(0, len(xs), 2):
             if i+1 >= len(xs):
-                break  # aresta não pareada (polígono degenerado?) -> ignora
+                break  # aresta nao pareada -> ignora
             xL = xs[i]
             xR = xs[i+1]
             # converter para intervalos de pixels inteiros (inclusivos).
@@ -111,7 +107,7 @@ def scanline_fill_even_odd(vertices: List[QPointF]) -> SpansByY:
         if spans:
             spans_by_y[y] = spans
 
-        # 5) Atualizar x nas arestas ativas para o próximo scanline (y+1)
+        # 5) atualizar x nas arestas ativas para o próximo scanline (y+1)
         for e in AET:
             e['x'] += e['inv_slope']
 

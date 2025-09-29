@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import List
 from PySide6.QtCore import QPointF
 
-
+# armazena configuracoes de estilo padrao do poligono como cor e espessura do traco e cor do preenchimento
 @dataclass
 class Styles:
     stroke_r: int = 20
@@ -16,7 +16,7 @@ class Styles:
     fill_b: int = 255
     fill_a: int = 160
 
-
+# representa um poligono com lista de vertices e estilos associados e fornece metodo para verificar degeneracao
 @dataclass
 class Polygon:
     vertices: List[QPointF]
